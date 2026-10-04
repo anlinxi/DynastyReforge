@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "cap sync ios",
     "open": "cap open ios",
-    "capacitor:copy:after": "rm -rf ios/App/App/public/assets-hd"
+    "capacitor:copy:after": "rm -rf ios/App/App/public/assets-hd ios/App/App/public/assets/data/saves ios/App/App/public/assets/data/battle_sources.json && find ios/App/App/public -name .DS_Store -delete"
   },
   "dependencies": {
     "@capacitor/core": "8.5.2",

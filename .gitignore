@@ -10,3 +10,7 @@ mobile/ios/App/App/config.xml
 # Python
 __pycache__/
 *.pyc
+# iOS 打包产物
+mobile/ios/App/build/
+mobile/ios/App/Payload/
+*.ipa

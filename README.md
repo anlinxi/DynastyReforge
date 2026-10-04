@@ -1,8 +1,10 @@
-# DynastyReforge · 幽城幻劍錄 复刻
+# DynastyReforge · 幽城幻劍錄 重光
 
 用现代网页技术（Phaser 3）重新实现的《幽城幻劍錄》（宇峻科技，1999）。剧情、地图、战斗、菜单、存档按原作逐项复刻，存档与原作的 `SaveNNN.TSF` 互通。可以在浏览器、桌面（Mac）和 iPhone 上玩。
 
 > **本仓库不含任何原作素材。** 你需要自己有一份原作，用仓库里的提取工具在本机生成素材后才能玩。
+
+欢迎 Star ⭐、Fork，遇到问题或有建议请提 [Issue](https://github.com/knightmarehs/DynastyReforge/issues)，也欢迎提交 Pull Request。
 
 ## 截图
 
@@ -52,7 +54,7 @@ cd DynastyReforge
 cd game && npm install && cd ..
 ```
 
-提取素材（约 1 小时，生成约 2.1 GB 到 `game/public/`）：
+提取素材（多核电脑约 20 分钟，核数少会更久；生成约 2.1 GB 到 `game/public/`）：
 
 ```bash
 python3 tools/extract.py --castle "<原作安装目录>/Dynasty/Castle" --out game/public
@@ -120,6 +122,23 @@ cd game && npm run build && cd ../mobile && npm install && npm run sync && npm r
 ```
 
 在 Xcode 里选 App → Signing & Capabilities → Team 选自己的 Apple ID，顶部选手机，点运行。手机版固定原版画质；用免费账号安装，每 7 天要重新运行一次。存档在“文件” App 的 幽城幻劍錄 文件夹里，可以用访达拖进拖出。
+
+打成不签名的 `.ipa`（给没有 Mac 的人用 Sideloadly 自己签名安装，见下）：
+
+```bash
+cd game && npm run build && cd ../mobile && npm install && npx cap copy ios
+cd ios/App && xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+  -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+mkdir Payload && cp -R build/Build/Products/Release-iphoneos/App.app Payload/ && zip -qry 幽城幻劍錄.ipa Payload
+```
+
+**用 Sideloadly 安装 `.ipa`**（Windows / Mac 都可以，用自己的免费 Apple ID）
+
+1. 安装 [Sideloadly](https://sideloadly.io/)。Windows 还要装 iTunes 和 iCloud 的**官网下载版**（不是微软商店版）。
+2. 手机用数据线连电脑，在手机上点“信任此电脑”。
+3. 打开 Sideloadly，把 `.ipa` 拖进窗口，Apple ID 一栏填自己的，点 Start；按提示输入密码和验证码。
+4. 手机上打开“设置 → 通用 → VPN 与设备管理”，信任自己的 Apple ID。iOS 16 以上还要打开“设置 → 隐私与安全性 → 开发者模式”，手机会重启一次。
+5. 免费 Apple ID 签的 App **7 天后打不开**，用 Sideloadly 重新装一次即可。**直接覆盖安装，不要先删 App**，否则存档会跟着删掉；保险起见，重装前先在“文件”App 的 幽城幻劍錄 文件夹里把存档复制出来。
 
 ## 操作
 
