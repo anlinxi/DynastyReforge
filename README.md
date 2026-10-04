@@ -29,7 +29,10 @@
 
 **台湾第三版硬盘版**（安装目录里有 `Dynasty/Castle/exe/RPG.exe` 和 `Dynasty/Castle/multimedia/`）。
 
-- `RPG.exe` 用随附的 2in1 / 3in1 / 5in1 任一款免 CD 都可以，原版 `RPG.exe` 理论上也可以（只核对我们读取的那几张数据表）。
+可以在这里下载 通过网盘分享的文件：幽城完美中文硬盘版
+链接: https://pan.baidu.com/s/1tMSLOUfcJnKjKBefTBrNNA?pwd=9mrj 提取码: 9mrj
+
+- `RPG.exe` 用原版 `RPG.exe`，或 2in1 / 3in1 / 5in1 任一款免 CD 补丁中的都可以。
 - `multimedia/` 下的文件会逐个核对指纹；装了 MOD（如“300 块版”）的安装目录会被拒绝，并提示版本不对。
 
 ### 2. 软件
