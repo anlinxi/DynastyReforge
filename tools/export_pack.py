@@ -14,8 +14,10 @@ from __future__ import annotations
 import argparse
 import glob as globmod
 import json
+import os
 import struct
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pack_atlas
@@ -232,14 +234,17 @@ def main(argv: list[str]) -> int:
 
     out_root = Path(args.out_dir)
     manifest = []
-    for path in paths:
-        result = export_one(path, out_root)
-        if result:
-            manifest.append(result)
-            print(
-                f"  {result['name']}: {result['frames']} 帧, "
-                f"{result['images']} 图, {result['sounds']} 音效"
-            )
+    # 每个包写自己的目录，互不相干，可以多进程并行；manifest.json 是共享的，最后统一写一次。
+    # map 按输入顺序返回结果，输出与串行时一致。
+    with ProcessPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+        for result in pool.map(export_one, paths, [out_root] * len(paths), chunksize=4):
+            if result:
+                manifest.append(result)
+                print(
+                    f"  {result['name']}: {result['frames']} 帧, "
+                    f"{result['images']} 图, {result['sounds']} 音效",
+                    flush=True,
+                )
 
     update_manifest(out_root, manifest)
     print(f"\n完成 {len(manifest)}/{len(paths)} 个 -> {out_root}")

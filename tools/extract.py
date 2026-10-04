@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -213,13 +214,13 @@ def steps(p: Paths) -> list[tuple[str, str, Callable[[Paths, "Runner"], None]]]:
     def maps(_p: Paths, r: Runner) -> None:
         archives = sorted(f for f in mm("Map").iterdir() if f.suffix.upper() == ".DAT")
         done = set(r.state.setdefault("maps", []))
-        for i, dat in enumerate(archives, 1):
-            if dat.name in done:
-                continue
-            print(f"\r  地图 {i}/{len(archives)} {dat.stem}      ", end="", flush=True)
-            r.call(tool("export_map.py", dat, a / "maps", "--sprite-dir", a / "sprites",
-                        "--sys", mm("Sys/Sys.dat")))
-            r.state["maps"].append(dat.name)
+        todo = [dat for dat in archives if dat.name not in done]
+        # 每张图写自己的目录（精灵键带图号前缀），互不相干，多开子进程并行
+        cmds = {dat.name: tool("export_map.py", dat, a / "maps", "--sprite-dir", a / "sprites",
+                               "--sys", mm("Sys/Sys.dat")) for dat in todo}
+        for i, name in enumerate(r.call_parallel(cmds), len(archives) - len(todo) + 1):
+            print(f"\r  地图 {i}/{len(archives)} {Path(name).stem}      ", end="", flush=True)
+            r.state["maps"].append(name)
             r.save()
         print()
 
@@ -289,6 +290,10 @@ def hd_steps(p: Paths) -> list:
     return []
 
 
+# 子工具一律 UTF-8 模式：中文 Windows 默认按 GBK 读写文本，中文 JSON 会读错或写坏
+CHILD_ENV = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+
+
 class Runner:
     """执行一条条子命令，输出进日志；记住做完的步骤，断了能续。"""
 
@@ -305,11 +310,30 @@ class Runner:
     def call(self, cmd: list[str]) -> None:
         self.log.write(f"$ {' '.join(cmd)}\n")
         self.log.flush()
-        # 子工具一律 UTF-8 模式：中文 Windows 默认按 GBK 读写文本，中文 JSON 会读错或写坏
-        env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
-        result = subprocess.run(cmd, cwd=ROOT, stdout=self.log, stderr=subprocess.STDOUT, env=env)
+        result = subprocess.run(cmd, cwd=ROOT, stdout=self.log, stderr=subprocess.STDOUT, env=CHILD_ENV)
         if result.returncode:
             raise StepFailed(f"{Path(cmd[1]).name} 退出码 {result.returncode}")
+
+    def call_parallel(self, cmds: dict[str, list[str]]):
+        """同时跑多条互不相干的子命令（同时最多 CPU 核数条），每条做完就产出它的键。
+        各条的输出整段写进日志，不交错；有一条失败就等在跑的收尾后报错（做完的已记入续跑状态）。"""
+        def run_one(cmd: list[str]) -> subprocess.CompletedProcess:
+            return subprocess.run(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  env=CHILD_ENV, text=True, encoding="utf-8", errors="replace")
+
+        failed = []
+        with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+            futures = {pool.submit(run_one, cmd): key for key, cmd in cmds.items()}
+            for future in as_completed(futures):
+                key, result = futures[future], future.result()
+                self.log.write(f"$ {' '.join(map(str, result.args))}\n{result.stdout}")
+                self.log.flush()
+                if result.returncode:
+                    failed.append(f"{Path(result.args[1]).name} {Path(key).stem} 退出码 {result.returncode}")
+                    continue
+                yield key
+        if failed:
+            raise StepFailed("；".join(failed))
 
     def run(self, name: str, action: Callable[[Paths, "Runner"], None]) -> float:
         logs = self.p.work / "logs"

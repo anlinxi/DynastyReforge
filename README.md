@@ -42,7 +42,7 @@
 Mac 可用 [Homebrew](https://brew.sh/)：`brew install git node python ffmpeg`。
 Windows 可用：`winget install Git.Git OpenJS.NodeJS.LTS Python.Python.3.12 Gyan.FFmpeg`，装完重开命令行窗口。
 
-> 目前提取与运行只在 Mac 上完整测试过；Windows 版可以打包（见下），尚未在 Windows 上实测。
+> 提取工具目前只在 Mac 上完整测试过；Mac 与 Windows 的安装包都已实测可玩。
 
 ## 安装与提取
 
@@ -140,6 +140,7 @@ cd game && npm run build && cd ../mobile && npm install && npm run sync && npm r
 - **“原作目录与已验证的官方版不一致”**：不是台湾第三版，或装了 MOD。会列出哪些文件不同。
 - **“缺少 pillow, numpy”**：用运行提取的同一个 Python 执行 `pip install pillow numpy`。
 - **影片一步失败**：没装 ffmpeg，或者命令行找不到它。装好后再跑同一条命令即可续上。
+- **Mac 安装包第一次玩时没有声效**（已知问题，原因还在查）：读档也恢复不了，**退出游戏重新打开**即可。
 - **5180 端口被占用**：关掉占用这个端口的程序，或改 `game/vite.config.js` 里的端口。
 
 ## 许可证与版权
