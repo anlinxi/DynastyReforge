@@ -1,0 +1,77 @@
+{
+  "name": "youcheng-desktop",
+  "private": true,
+  "version": "1.4.3",
+  "description": "DynastyReforge 桌面版：Electron 加载 game/dist（先在 game/ 下 npm run build）；dist:mac 打 Mac 通用版 dmg，dist:win 打 Windows 免安装 zip",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --mac --x64 --dir",
+    "dist": "electron-builder --mac --universal",
+    "dist:mac": "electron-builder --mac --universal",
+    "dist:win": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "local.youcheng.desktop",
+    "productName": "幽城幻劍錄",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "diagnostics.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../game/dist",
+        "to": "game",
+        "filter": [
+          "**/*",
+          "!assets/data/saves/**",
+          "!assets/data/battle_sources.json",
+          "!**/.DS_Store",
+          "!**/Thumbs.db"
+        ]
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.role-playing-games",
+      "identity": null,
+      "icon": "build/icon.png"
+    },
+    "dmg": {
+      "title": "幽城幻劍錄"
+    },
+    "compression": "normal",
+    "electronLanguages": [
+      "zh-CN",
+      "zh-TW",
+      "zh_CN",
+      "zh_TW",
+      "en-US",
+      "en"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+  }
+}

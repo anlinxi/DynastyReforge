@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+# 提取出来的素材（原作衍生，不进仓库）
+game/public/
+game/dist/
+desktop/release/
+mobile/ios/App/App/public/
+mobile/ios/App/App/capacitor.config.json
+mobile/ios/App/App/config.xml
+# Python
+__pycache__/
+*.pyc

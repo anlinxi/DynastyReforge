@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.knightmarehs.youcheng",
+  "appName": "幽城幻劍錄",
+  "webDir": "../game/dist",
+  "backgroundColor": "#000000",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#000000"
+  }
+}

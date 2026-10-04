@@ -1,0 +1,17 @@
+{
+  "简": {
+    "assets/menus/menus.json": "assets/locales/chs/menus/menus.json",
+    "assets/menus/MEN9300": "assets/locales/chs/menus/MEN9300",
+    "assets/menus/MEN9301": "assets/locales/chs/menus/MEN9301",
+    "assets/menus/MEN9302": "assets/locales/chs/menus/MEN9302",
+    "assets/menus/MEN9303": "assets/locales/chs/menus/MEN9303",
+    "assets/ITF0003": "assets/locales/chs/ITF0003",
+    "assets/ITF0007": "assets/locales/chs/ITF0007",
+    "assets/ITF0025": "assets/locales/chs/ITF0025",
+    "assets/ITF0030": "assets/locales/chs/ITF0030",
+    "assets/ITF0050": "assets/locales/chs/ITF0050",
+    "assets/ITF0053": "assets/locales/chs/ITF0053",
+    "assets/ITF400": "assets/locales/chs/ITF400",
+    "assets/ITF502": "assets/locales/chs/ITF502"
+  }
+}

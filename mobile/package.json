@@ -1,0 +1,19 @@
+{
+  "name": "youcheng-mobile",
+  "private": true,
+  "version": "1.4.3",
+  "description": "幽城复刻手机版：Capacitor 把 game/dist 装进 iOS 原生壳（PLAT-01，自用，素材打进安装包）。先在 game/ 下 npm run build，再 npm run sync；手机固定原版画质，复制后删掉 AI 高清图 assets-hd（capacitor:copy:after）",
+  "scripts": {
+    "sync": "cap sync ios",
+    "open": "cap open ios",
+    "capacitor:copy:after": "rm -rf ios/App/App/public/assets-hd"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.5.2",
+    "@capacitor/filesystem": "8.1.4",
+    "@capacitor/ios": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}

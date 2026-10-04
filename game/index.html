@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 手机：禁止双击/双指缩放页面（游戏自己管缩放）；页面铺满整屏，安全区由 body 内边距让开。电脑浏览器忽略 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>幽城幻剑录 高清复刻</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #0d0b0a; height: 100%; }
+      body { display: flex; align-items: center; justify-content: center; }
+      /* 手机：长按不弹放大镜/选字/菜单，触摸不触发系统滚动缩放手势 */
+      body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+      /* 手机安全区（灵动岛/圆角）：画布居中在安全区里，systems/safeArea.js 读同样的值；电脑上为 0 */
+      body { box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+      #game { image-rendering: pixelated; }
+      /* 画布按块排版：行内画布底下有约 9 像素的文字基线空隙，外层比窗口高、页面能滚动一点，
+         Phaser 每 0.5 秒检查画布位置时把滚动量算进去，永远对不上，于是不停重排（2026-10-03 诊断日志）。 */
+      #game canvas { display: block; }
+      html, body { overflow: hidden; }
+      #game canvas, video { cursor: url("/assets/cursors/pointer.png") 0 0, default; }
+      /* 标题页右侧选项列（ui/titleOptions.js）：电脑贴右下从下往上排，触屏贴右上从上往下排 */
+      .title-options { position: fixed; right: 12px; bottom: 10px; z-index: 2; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+      .language-choice { color: #dbc59e; font: 14px serif; }
+      .language-choice select { color: #dbc59e; background: #24170e; border: 1px solid #806243; padding: 4px; }
+      .save-folder-choice { position: fixed; left: 12px; bottom: 10px; z-index: 3; color: #dbc59e; font: 14px serif; display: flex; gap: 8px; align-items: center; max-width: 70vw; flex-wrap: wrap; }
+      .save-folder-choice button { color: #dbc59e; background: #24170e; border: 1px solid #806243; padding: 5px 8px; cursor: pointer; }
+      /* 触屏按键（systems/touchControls.js）：样式 C「本作风格」，用户 2026-10-01 选定。
+         层级压过片头（50）、剧情影片（9999），確認＝空格可以跳过影片 */
+      .touch-controls { position: fixed; inset: 0; z-index: 10001; pointer-events: none; opacity: 0.6; }
+      .touch-stick, .touch-btn { position: absolute; pointer-events: auto; touch-action: none; box-sizing: border-box; border-radius: 50%; border: 3px solid #dbc59e; }
+      .touch-stick { left: calc(18px + env(safe-area-inset-left)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 128px; height: 128px; background: rgba(36, 23, 14, 0.9); box-shadow: inset 0 0 0 5px #806243; }
+      .touch-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; box-sizing: border-box; border-radius: 50%; background: #806243; border: 3px solid #dbc59e; }
+      .touch-arrow { position: absolute; width: 0; height: 0; border: 6px solid transparent; }
+      .touch-arrow.up { left: 50%; top: 5px; margin-left: -6px; border-bottom: 9px solid #dbc59e; border-top-width: 0; }
+      .touch-arrow.down { left: 50%; bottom: 5px; margin-left: -6px; border-top: 9px solid #dbc59e; border-bottom-width: 0; }
+      .touch-arrow.left { top: 50%; left: 5px; margin-top: -6px; border-right: 9px solid #dbc59e; border-left-width: 0; }
+      .touch-arrow.right { top: 50%; right: 5px; margin-top: -6px; border-left: 9px solid #dbc59e; border-right-width: 0; }
+      .touch-btn { width: 68px; height: 68px; padding: 0; background: #24170e; box-shadow: inset 0 0 0 4px #806243; color: #dbc59e; font: 700 20px "Songti TC", "Noto Serif TC", serif; line-height: 1; }
+      .touch-btn.pressed { background: #806243; }
+      .touch-confirm { right: calc(16px + env(safe-area-inset-right)); bottom: calc(78px + env(safe-area-inset-bottom)); }
+      .touch-back { right: calc(92px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); }
+      /* 触屏时标题页的语言/高清/存档文件夹选择挪到上方，免得被按键盖住 */
+      .touch-ui .title-options { bottom: auto; top: calc(10px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); flex-direction: column; }
+      .touch-ui .save-folder-choice { bottom: auto; top: calc(10px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
