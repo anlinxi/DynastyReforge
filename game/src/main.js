@@ -12,6 +12,7 @@ import { WIDE_ENABLED, stageView, updateStageView } from './systems/stageView.js
 import { createVirtualKeys } from './systems/virtualKeys.js';
 import { installGamepad } from './systems/gamepadSource.js';
 import { mountTouchControls, touchEnabled } from './systems/touchControls.js';
+import { installAndroidBack } from './systems/androidBack.js';
 import { onSafeAreaChange, safeViewport } from './systems/safeArea.js';
 import { installBackgroundAudio } from './systems/backgroundAudio.js';
 import { bgmStreamElements } from './systems/bgm.js';
@@ -86,6 +87,8 @@ const virtualKeys = createVirtualKeys();
 const onFrame = (cb) => game.events.on(Phaser.Core.Events.PRE_STEP, cb);
 installGamepad({ keys: virtualKeys, onFrame });
 onFrame(() => virtualKeys.tick());
+// 安卓系统返回键 = 游戏内「返回」，不退出 App
+installAndroidBack({ keys: virtualKeys });
 // 手机触屏：左下摇杆、右下確認/返回，同用上面的核心（?touch=1 强制显示，?touch=0 关）
 if (touchEnabled(window.location.search, {
   maxTouchPoints: navigator.maxTouchPoints ?? 0,

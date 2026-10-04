@@ -1,6 +1,6 @@
 # DynastyReforge · 幽城幻劍錄 重光
 
-用现代网页技术（Phaser 3）重新实现的《幽城幻劍錄》（漢堂國際，2001）。剧情、地图、战斗、菜单、存档按原作逐项复刻，存档与原作的 `SaveNNN.TSF` 互通。可以在浏览器、桌面（Mac / Windows）和 iPhone 上玩。
+用现代网页技术（Phaser 3）重新实现的《幽城幻劍錄》（漢堂國際，2001）。剧情、地图、战斗、菜单、存档按原作逐项复刻，存档与原作的 `SaveNNN.TSF` 互通。可以在浏览器、桌面（Mac / Windows）、iPhone 和安卓手机上玩。
 
 > **本仓库不含任何原作素材。** 你需要自己有一份原作，用仓库里的提取工具在本机生成素材后才能玩。
 
@@ -142,6 +142,42 @@ mkdir Payload && cp -R build/Build/Products/Release-iphoneos/App.app Payload/ &&
 3. 打开 Sideloadly，把 `.ipa` 拖进窗口，Apple ID 一栏填自己的，点 Start；按提示输入密码和验证码。
 4. 手机上打开“设置 → 通用 → VPN 与设备管理”，信任自己的 Apple ID。iOS 16 以上还要打开“设置 → 隐私与安全性 → 开发者模式”，手机会重启一次。
 5. 免费 Apple ID 签的 App **7 天后打不开**，用 Sideloadly 重新装一次即可。**直接覆盖安装，不要先删 App**，否则存档会跟着删掉；保险起见，重装前先在“文件”App 的 幽城幻劍錄 文件夹里把存档复制出来。
+
+**安卓**（需要 [JDK 21](https://adoptium.net/) 和 Android SDK；Mac / Windows / Linux 都可以）
+
+装 [Android Studio](https://developer.android.com/studio) 最省事；只用命令行的话，下载 Android 命令行工具后执行 `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"`。然后设好 `JAVA_HOME`（指向 JDK 21）和 `ANDROID_HOME`（指向 SDK）：
+
+```bash
+cd game && npm run build && cd ../mobile && npm install && npm run sync:android
+cd android && ./gradlew assembleDebug
+```
+
+生成 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`（约 1.7 GB），可以直接装到手机上。手机版固定原版画质。
+
+想要正式签名的包（以后出新版可以覆盖安装），先生成自己的签名证书，再在 `mobile/android/` 下新建 `keystore.properties`。这个文件和证书都不要提交到仓库：
+
+```bash
+keytool -genkeypair -keystore ~/youcheng-release.jks -alias youcheng -keyalg RSA -keysize 4096 -validity 36500
+```
+
+```properties
+storeFile=/绝对路径/youcheng-release.jks
+storePassword=你设的密码
+keyAlias=youcheng
+keyPassword=你设的密码
+```
+
+然后在 `mobile/` 下执行 `npm run apk`，生成 `mobile/android/app/build/outputs/apk/release/app-release.apk`。**证书要备份**：丢了以后出的新版本没法覆盖安装，只能卸载重装，而卸载会把存档一起删掉。
+
+**安装 `.apk`**
+
+1. 把 `.apk` 传到手机上（数据线、网盘都行；文件很大，聊天软件一般发不了）。
+2. 在手机的“文件管理”里点开 `.apk`。第一次会提示“禁止安装未知应用”：按提示进设置，给“文件管理”（或你用来打开它的 App）打开“允许安装未知应用”，返回继续安装。部分国产手机还会再弹一次风险确认，照提示同意即可。
+3. 装好后横屏打开。左下摇杆走路，右下「確認」「返回」；系统返回键等于「返回」，不会退出游戏。
+4. 存档在 `Android/data/io.github.knightmarehs.youcheng/files/`，文件名和电脑版一样是 `SaveNNN.TSF`。手机连电脑（选“传输文件”）后，可以把电脑存档拖进这个文件夹，或从这里拷出来。新版安卓的手机文件管理一般看不到 `Android/data`，要用电脑。
+5. 更新新版本时**直接覆盖安装，不要先卸载**，卸载会把存档一起删掉。保险起见，更新前先用电脑把存档拷出来。
+
+> 安卓版目前只在模拟器上启动过，还没有在真机上完整游玩过。遇到问题欢迎提 Issue。
 
 ## 操作
 

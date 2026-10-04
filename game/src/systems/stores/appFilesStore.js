@@ -1,5 +1,6 @@
 /**
- * 手机 App（Capacitor 原生壳）的存档后端：App「文稿」文件夹里的 `SaveNNN.TSF`，与桌面版、原作同一文件名契约。
+ * 手机 App（Capacitor 原生壳）的存档后端：App 存档文件夹里的 `SaveNNN.TSF`，与桌面版、原作同一文件名契约。
+ * 文件夹位置 iPhone 与安卓不同，见 `saveDirectory`。
  *
  * 用户 2026-10-03 选定：手机存档改为文件，方便与电脑互通。Info.plist 开了文件共享
  * （UIFileSharingEnabled、LSSupportsOpeningDocumentsInPlace），所以：
@@ -11,11 +12,20 @@
  */
 import { fileNameOf, slotOf } from './fileSystemStore.js';
 
-/** Capacitor 的 Directory.Documents。 */
-const DOCUMENTS = 'DOCUMENTS';
+/**
+ * 存档目录（Capacitor 的 Directory 取值）。纯函数。
+ * - iPhone：App「文稿」文件夹（DOCUMENTS），开了文件共享，访达可拖。
+ * - 安卓：`Android/data/<包名>/files/`（EXTERNAL）。安卓的 DOCUMENTS 是公共「文档」目录，
+ *   新版安卓对它有分区存储限制、卸载重装后读不回自己写的文件；EXTERNAL 不用权限，
+ *   电脑插线即可看到并拖拽 TSF（用户 2026-10-04 选定），代价是卸载 App 时存档一起删。
+ */
+export function saveDirectory(platform) {
+  return platform === 'android' ? 'EXTERNAL' : 'DOCUMENTS';
+}
 
 const fs = () => (typeof window === 'undefined' ? null : window.Capacitor?.Plugins?.Filesystem ?? null);
 const native = () => Boolean(typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.());
+const dir = () => saveDirectory(window.Capacitor?.getPlatform?.());
 
 /** Uint8Array → base64（插件读写二进制用 base64）。 */
 export function toBase64(bytes) {
@@ -53,7 +63,7 @@ export const appFilesStore = {
     return this.restore();
   },
 
-  /** 手机上没有“选文件夹”：位置固定是 App 文稿文件夹。 */
+  /** 手机上没有“选文件夹”：位置固定（见 `saveDirectory`）。 */
   async chooseDir() {
     return false;
   },
@@ -69,7 +79,7 @@ export const appFilesStore = {
   async list() {
     if (!this.available()) return [];
     try {
-      const { files } = await fs().readdir({ path: '', directory: DOCUMENTS });
+      const { files } = await fs().readdir({ path: '', directory: dir() });
       return files
         .map((f) => slotOf(typeof f === 'string' ? f : f.name))
         .filter((slot) => slot !== null)
@@ -84,7 +94,7 @@ export const appFilesStore = {
   async read(slot) {
     if (!this.available()) return null;
     try {
-      const { data } = await fs().readFile({ path: fileNameOf(slot), directory: DOCUMENTS });
+      const { data } = await fs().readFile({ path: fileNameOf(slot), directory: dir() });
       return typeof data === 'string' ? fromBase64(data) : new Uint8Array(await data.arrayBuffer());
     } catch (err) {
       console.warn(`读 ${fileNameOf(slot)} 失败：`, err?.message ?? err);
@@ -94,13 +104,13 @@ export const appFilesStore = {
 
   async write(slot, bytes) {
     if (!this.available()) throw new Error('不在手机 App 里，没有 App 文件夹');
-    await fs().writeFile({ path: fileNameOf(slot), data: toBase64(Uint8Array.from(bytes)), directory: DOCUMENTS });
+    await fs().writeFile({ path: fileNameOf(slot), data: toBase64(Uint8Array.from(bytes)), directory: dir() });
   },
 
   async remove(slot) {
     if (!this.available()) return;
     try {
-      await fs().deleteFile({ path: fileNameOf(slot), directory: DOCUMENTS });
+      await fs().deleteFile({ path: fileNameOf(slot), directory: dir() });
     } catch (err) {
       console.warn(`删 ${fileNameOf(slot)} 失败：`, err?.message ?? err);
     }
