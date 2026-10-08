@@ -1,4 +1,5 @@
 import { playSfx } from '../systems/audioSettings.js';
+import { playLine, stopTts } from '../systems/tts.js';
 import { dialoguePages, dialogueLayer } from '../systems/dialogueText.js';
 import Phaser from 'phaser';
 import { FONT_KEY, DIALOGUE_FONT_KEY, FONT_SIZE, STAGE_WIDTH, STAGE_HEIGHT, UI_KEYS } from '../config.js';
@@ -202,6 +203,10 @@ export default class DialogueBox {
     this.container.setVisible(true);
     this.pending = line;
 
+    // 对话语音：这句一上框就开播（打字机照常走，语音并行，不卡节奏）。
+    // 开场动画期间也在播 —— 动画只有 4 帧 220ms，等动画放完才播反而更突兀。
+    playLine(line.text, line.speaker);
+
     this.placePortrait(line);
     this.placeNamePlate(line, speakerName);
 
@@ -386,6 +391,8 @@ export default class DialogueBox {
   ask(values) {
     const list = (values ?? []).map(Number).filter(Number.isInteger);
     if (!list.length) return this;
+    // 选择句：不播报选项文字，进入选择即停当前语音（需求 §4.3 D3）。
+    stopTts();
     this.question = true;
     this.choiceKind = choiceKind(list);
     this.choiceOptions = this.choiceKind === 'yesno'
@@ -501,6 +508,8 @@ export default class DialogueBox {
     }
 
     if (this.typing) {
+      // 补全文字：语音再放下去就跟画面错位了，停。
+      stopTts();
       this.charCount = this.fullText.length;
       this.paintText(this.fullText.length);
       this.typing = false;
@@ -508,19 +517,25 @@ export default class DialogueBox {
     }
 
     if (this.pageIndex + 1 < this.pages.length) {
+      // 翻页：这句还没念完就翻，语音得跟着停（下一句 show() 会重新播）。
+      stopTts();
       this.pageIndex += 1;
       this.typePage();
       return false;
     }
     // 选择句：正文放完先把选项摆出来，**再按一次**才算答完。
     if (this.question && !this.choiceShown) {
+      stopTts();
       this.drawChoices();
       return false;
     }
+    stopTts();
     return true;
   }
 
   hide() {
+    // 框都收走了语音还挂着就成背景音了，必须停（需求 §4.3 D4）。
+    stopTts();
     this.visible = false;
     this.typing = false;
     this.openFrame = null;

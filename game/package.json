@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "opencc-js": "^1.4.2",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
