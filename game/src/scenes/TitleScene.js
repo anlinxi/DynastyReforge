@@ -1,7 +1,7 @@
 import { mountLanguageChoice } from '../systems/language.js';
 import { backHint } from '../systems/inputHints.js';
 import { mountHdChoice } from '../hd/hdChoice.js';
-import { mountPatchChoices } from '../ui/titleOptions.js';
+import { mountPatchChoices, mountTtsChoice } from '../ui/titleOptions.js';
 import { mountSaveFolderChoice } from '../ui/saveFolderChoice.js';
 import Phaser from 'phaser';
 import FieldSprite from '../systems/FieldSprite.js';
@@ -71,6 +71,7 @@ export default class TitleScene extends Phaser.Scene {
     mountLanguageChoice(this);
     mountHdChoice(this);
     mountPatchChoices(this);
+    mountTtsChoice(this);
     this.saveFolderChoice = mountSaveFolderChoice(this, async () => {
       if (this.mode === 'load') this.paintSlots(await loadAllSlots());
     });

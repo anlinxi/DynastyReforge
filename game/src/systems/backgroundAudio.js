@@ -3,8 +3,10 @@
  *
  * 背景音乐是浏览器原生音频元素边读边播的（bgm.js），不归 Phaser 管，Phaser 自己的失焦暂停管不到它，
  * 于是 iPhone 回到主屏幕后还在响（用户 2026-10-03 真机报）。这里统一处理：
- * 页面不可见时暂停正在放的背景音乐与影片、挂起 Phaser 音效；可见时只恢复刚才被这里暂停的那些。
+ * 页面不可见时暂停正在放的背景音乐与影片、挂起 Phaser 音效、停对话语音；可见时只恢复刚才被这里暂停的那些。
  */
+
+import { stopTts } from './tts.js';
 
 /**
  * 后台时要暂停哪些、回前台恢复哪些。纯函数（便于测试）。
@@ -32,6 +34,8 @@ export function installBackgroundAudio({ game, media, doc = document }) {
       paused = playingMedia(media());
       for (const el of paused) el.pause();
       game.sound?.pauseAll?.();
+      // 对话语音不归上面两者管（原生 Audio），失焦一起停；回前台不续播（需求 §4.7）。
+      stopTts();
       return;
     }
     game.sound?.resumeAll?.();

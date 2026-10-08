@@ -47,6 +47,7 @@ import {
 } from '../systems/cutscene.js';
 import { stateToReplay, asInstant } from '../systems/replayState.js';
 import { mapBgmKey, muteBgm, playBgm, stopBgm } from '../systems/bgm.js';
+import { prewarmMap } from '../systems/tts.js';
 import { ensureMap, unloadExcept } from '../systems/loader.js';
 import {
   AVATARS_KEY, AVATAR_SPRITES, CUTSCENE_SPRITES, DEFEAT, OPENING, SHARED_EVENT_MAP,
@@ -401,6 +402,9 @@ export default class FieldScene extends Phaser.Scene {
     this.events = this.meta.events ?? {};
     this.scripts = this.meta.scripts ?? {};
     this.inheritScripts();
+    // TTS：进图预合成当前图全部对白语音（含跨图继承的脚本），
+    // 玩家开口第一句不用等首响。fire-and-forget，失败静默、不阻塞进图。
+    prewarmMap(this.scripts);
     // ⚠️ **切图也要停循环音效。** 跨图续演时 `enterMap` 直接把 `runner`
     // 置空、**不走 `endScript`**，所以只靠那一处停不掉 —— 马车那段正是
     // 「上车（马蹄声起）→ 切到车厢 → 切到迦夏之窟外」，中间一次都没经过

@@ -391,6 +391,28 @@ export const SFX_FILES = Object.freeze({
   32: 'sfx32.wav',     // 3 处（MP2409B 槽 9/10、MP2409C1 槽 9）
 });
 
+/**
+ * 对话语音 TTS（需求文档 §4.5）。
+ * API_BASE 是开发期直连后台（CORS 已放行）；`/synthesize` 返回
+ * `{code, msg, data:{audioBase64}}`（§2.1 实测），请求体见 `systems/tts.js`。
+ */
+export const TTS_CONFIG = Object.freeze({
+  /** 后端网关地址（开发期直连，CORS 已放行）。 */
+  API_BASE: 'https://hk.anlinxi.top/gateway/have-fun-native/tts',
+  /** 语速倍率，1.0 = 正常。 */
+  SPEED: 1.0,
+  /** 合成音频格式（后端返回的 audioBase64 解码后即此格式）。 */
+  FORMAT: 'mp3',
+  /** 进图预合成开关（§7）。 */
+  PREWARM_ON_MAP_ENTER: true,
+  /** 预合成并发数（§7：2 并发，避免抢带宽）。 */
+  PREWARM_CONCURRENCY: 2,
+  /** 单图预合成总量上限（§7：≤60 条/图）。 */
+  PREWARM_LIMIT: 60,
+  /** 客户端语音缓存 LRU 上限（§6：200）。 */
+  REQUEST_CACHE_LIMIT: 200,
+});
+
 // ⚠️ `MP0208`（废屋内）的 SCI 里**没有 BGM 编号**，`map.json` 的 `bgm` 是 null。
 // 那不是漏导 —— 原作进废屋就是沿用上一张图的曲子（`playBgm` 收到空 key 会
 // 原样续放）。别为了"补齐"给它随便指一首。

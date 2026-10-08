@@ -1,5 +1,6 @@
 import { LANGUAGE } from '../systems/language.js';
 import { battlePatches, setBattlePatch } from '../systems/gameplayOptions.js';
+import { ttsEnabled, setTtsEnabled } from '../systems/ttsSettings.js';
 import { titleOptionColumn } from './titleColumn.js';
 
 /** 一个下拉选项。`choices` 为 [值, 显示文字]；键盘事件不外传，免得方向键/空格触发标题菜单。 */
@@ -46,4 +47,28 @@ export function mountPatchChoices(scene) {
       },
     });
   }
+}
+
+/** TTS 开关的文字，跟随标题页语言。 */
+const TTS_TEXT = {
+  繁: { caption: '語音', on: '開', off: '關' },
+  简: { caption: '语音', on: '开', off: '关' },
+};
+
+/**
+ * 「語音：開/關」—— 对话语音 TTS 开关（需求文档 §4.6）。
+ * 仿「成長/掉寶」两个补丁：标题页下拉、默认开、只记关掉的（存 '0'）。
+ * 改了即存，不重新载入：`playLine` 每次现读开关，即时生效。
+ */
+export function mountTtsChoice(scene) {
+  const text = TTS_TEXT[LANGUAGE] ?? TTS_TEXT.繁;
+  titleSelect(scene, {
+    caption: text.caption,
+    choices: [['1', text.on], ['0', text.off]],
+    value: ttsEnabled() ? '1' : '0',
+    className: 'tts-choice',
+    onChange: (v, select) => {
+      if (!setTtsEnabled(v === '1')) select.title = '無法保存，只對本次有效';
+    },
+  });
 }
