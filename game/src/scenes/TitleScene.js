@@ -12,6 +12,7 @@ import { createHold, heldDirection, holdSteps } from '../ui/holdScroll.js';
 import { drawSlotRows } from '../ui/slotRows.js';
 import { LAYOUT_KEY, applySaveBytes } from '../systems/gameSave.js';
 import { newGameEntry } from '../systems/gameStart.js';
+import { gateCheck } from '../systems/authGate.js';
 import { playBgm, stopBgm } from '../systems/bgm.js';
 import { MENU_SPEC_KEY, layersOf, textureKey } from '../ui/menuSpec.js';
 import {
@@ -276,8 +277,19 @@ export default class TitleScene extends Phaser.Scene {
    * 用户看到的就是「新章初始/前历再续」两遍 loading（2026-09-27）。
    * 现在与游戏里读档、切图同一条路：黑屏加载，超过 GAME_ENTRY_HINT_MS 才显示一行字。
    */
-  enterGame(entry) {
-    this.scene.start('Loading', { ...entry, text: '载入中…', hintDelayMs: GAME_ENTRY_HINT_MS });
+  async enterGame(entry) {
+    // 防倒卖验证：真正进游戏前的强拦截（D3，enterGame 挂点）。
+    // 宽限（未联网）时放行但存/读档被 gateGuard 拦下（D11 B）；
+    // 密钥无效/已锁定则停留标题页并已提示，可再次点击重试。
+    if (this._entering) return;
+    this._entering = true;
+    try {
+      const auth = await gateCheck('enter', this).catch(() => ({ ok: false }));
+      if (!auth.ok) return;
+      this.scene.start('Loading', { ...entry, text: '载入中…', hintDelayMs: GAME_ENTRY_HINT_MS });
+    } finally {
+      this._entering = false;
+    }
   }
 
   /**

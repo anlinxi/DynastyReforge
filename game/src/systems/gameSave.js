@@ -20,6 +20,7 @@ import { readSave } from './tsf.js';
 import { createCatalog } from './inventory.js';
 import { screenFacing } from './spriteLayout.js';
 import { FlagStore } from './eventScript.js';
+import { gateGuard } from './authGate.js';
 
 /** Phaser 缓存里的键。**底档模板**与**偏移表**都在 `BootScene` 里排队。 */
 export const LAYOUT_KEY = 'tsfLayout';
@@ -122,6 +123,11 @@ export function resetRunRegistry(scene) {
  * @returns {{mapId:string, entry:{x:number,y:number,facing:number}}}
  */
 export function applySaveBytes(scene, bytes) {
+  // 防倒卖验证：读档汇聚点拦截（D5/D6，覆盖标题读档、游戏内读档、导入 .TSF
+  // 与新章初始）。未通过验证（宽限期/受限/锁定）时阻止装档：标题页读档与
+  // 游戏内读档会显示失败提示并停留原处；新章初始由 `newGameEntry` 的
+  // try/catch 兜底退回兰州城开局（文档 2.4）。
+  gateGuard();
   const layout = scene.cache.json.get(LAYOUT_KEY);
   if (!layout) throw new Error('tsf_layout.json 没加载，读档做不了');
   const save = readSave(bytes, layout);
