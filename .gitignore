@@ -17,3 +17,5 @@ mobile/ios/App/Payload/
 *.ipa
 # 安卓签名证书（不进仓库）
 *.jks
+
+temp/

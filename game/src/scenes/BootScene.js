@@ -285,17 +285,13 @@ export default class BootScene extends Phaser.Scene {
    * `startGame: true` 只剩验证脚本 `verify/browser.mjs` 的 `bootToField` 在用。
    */
   async startGame() {
-    // 防倒卖验证：游戏开始前的强拦截（D3，Boot 挂点）。
-    // 每日首验联网取钥；未联网且无当日凭证时进入宽限期放行（D11 B，存/读档
-    // 由 gateGuard 拦下）；密钥无效/已锁定则停在黑屏提示并 5 秒后自动重试，
-    // 不进入标题画面。
+    // 防倒卖验证（手动输入版，D3 Boot 挂点）：每次启动必须手动输入当日密钥，
+    // 校验通过才继续。输入窗口由 authGate 的 DOM 覆盖层承载（黑底白字系统字体，
+    // 回车/按钮确认）；未输入有效密钥前停留在此，不进入标题画面。
+    // 原自动取钥已退役，输入成功后仅做一次辅助联网 verify（服务端确认，
+    // 网络失败不影响进入）；锁定时停留在黑屏提示，不自动重试。
     const auth = await gateCheck('boot', this).catch(() => ({ ok: false }));
-    if (!auth.ok) {
-      this.time?.delayedCall?.(5000, () => {
-        if (this.scene.isActive('Boot')) this.startGame();
-      });
-      return;
-    }
+    if (!auth.ok) return;
     // 选存储后端：能恢复上次选的文件夹就用它，否则浏览器存储。
     // 标题读档页必须等后端恢复，不能短暂把磁盘档误显示成空档。
     // ⚠️ 这里**不会弹文件夹选择框**（那需要用户手势），见 `saveStore.initStore`。

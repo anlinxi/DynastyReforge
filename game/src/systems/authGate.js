@@ -3,17 +3,21 @@
  *
  * 职责：在游戏开始前、读档/存档关键点、以及每 10 分钟的周期里，向验证服务
  * （http://ychjl.anlinxi.top/auth/）校验当日密钥，并在失败时按「放宽版惩罚」
- * 分级处理（1 次静默重试 / 2–3 次提示 / 4 次受限 / 5 次强制回标题）。
+ * 分级处理（1 次静默重试 / 2–3 次提示 / 4 次受限 / 5 次强制锁定）。
  *
- * 机制（对应《幽城幻剑录防倒卖验证方案》v2.0 定稿 D1–D12）：
- *   - 每日首验 + 离线容忍（D1）：当日 `get` 取钥成功即写入本地凭证
- *     （localStorage），当天后续验证超时/断网时跳过 verify 直接放行
- *     （本地弱校验密钥格式与内嵌日期）；
- *   - 跨日强制重取：本地日期与凭证日期不一致 → 凭证作废，下一次验证强制联网重取；
+ * 机制（手动输入版，对应需求变更）：
+ *   - 每次启动/进入游戏必须手动输入当日密钥（DOM 输入框叠加在 canvas 上，
+ *     黑底白字系统字体），校验规则：KEY_PATTERN 格式匹配 + 内嵌日期等于本地当日；
+ *   - 输入通过后落当日凭证（localStorage）并置 verified，之后的 10 分钟周期验证
+ *     用该凭证联网 verify、失败离线容忍，不再要求输入（凭证仅用于后续验证）；
+ *     即使本地已有当日凭证，每次启动仍必须重新输入（不能跳过）；
+ *   - 输入错误允许重输，连续错误计入 D4 惩罚分级（1 静默 / 2–3 提示 /
+ *     4 受限 / 5 强制锁定）；
+ *   - 跨日强制换钥：密钥内嵌日期不等于当日即视为无效，下一次启动输入新密钥；
  *   - 双定时器哨兵：主定时器每 10 分钟验证一次，哨兵定时器检查心跳，
  *     发现主定时器被停就补跑一次，防止单一定时器被删后完全失效（D4）；
  *   - 前台切回补检：页面从后台切回前台立即补一次校验；
- *   - 宽限期（D11 B）：未联网首验失败时允许进入游戏，但存/读档被 gateGuard 拦下。
+ *   - 存/读档拦截（gateGuard，D5/D6）与周期验证保持原方案。
  *
  * 惩罚状态写入 localStorage（刷新不清除，2.6），跨日随密钥轮换自动归零。
  * 本模块不 import 任何游戏内部模块，避免循环依赖；UI 提示用「系统字体黑底」
@@ -48,6 +52,7 @@ const state = {
   lastScene: null,        // 最近一次传入的场景（用于提示/回标题）
   watchStarted: false,    // 周期验证是否已启动（防重入）
   noticeText: null,       // 当前显示中的提示文本对象
+  inputPromise: null,     // 进行中的手动输入 Promise（防重入，复用同一输入框）
 };
 
 /** 本地当日日期串 YYYYMMDD。 */
@@ -164,6 +169,9 @@ function forceBackToTitle(scene) {
   showNotice('此游戏疑似非正版，已停止运行', scene);
   const s = scene || state.lastScene;
   if (!s) return;
+  // 启动/标题阶段本身就在“前台”，不必再跳场景（跳了也进不了游戏）
+  const key = s.scene?.key;
+  if (key === 'Boot' || key === 'Title') return;
   setTimeout(() => {
     try {
       const g = s.scene?.game;
@@ -219,6 +227,104 @@ async function fetchTodayKey() {
 }
 
 /**
+ * 手动输入当日密钥（启动/进入游戏强拦截）。
+ *
+ * 弹出 DOM 输入框叠加在 canvas 上（Phaser 3 无内置输入框），黑底白字系统字体
+ * （与 D10 提示风格一致），居中显示，支持回车确认与「确认」按钮。
+ * 每次启动都必须输入（即使本地已有当日凭证也不能跳过），校验规则：
+ *   KEY_PATTERN 格式匹配 + 内嵌日期等于本地当日（keyDate === todayStr）。
+ * 通过：落当日凭证、置 verified=true、清惩罚计数，返回 {ok:true, key}，
+ *   并异步发起一次辅助联网 verify（服务端确认，网络失败不影响本地校验结果）。
+ * 不通过：提示重输并计入 D4 惩罚分级；达到 5 次锁定后关闭输入框返回失败。
+ * 进行中的输入框复用（防重入）；resolve 后销毁 DOM，场景切换/页面可见性下无残留。
+ *
+ * @param {object} [scene] 传入的 Phaser 场景（用于惩罚提示与回标题）
+ * @returns {Promise<{ok:boolean, key?:string, penalty?:string}>}
+ */
+export function gateInput(scene) {
+  if (state.inputPromise) return state.inputPromise;
+  if (state.locked) {
+    showNotice('此游戏疑似非正版，已停止运行', scene);
+    return Promise.resolve({ ok: false, penalty: 'locked' });
+  }
+  const promise = new Promise((resolve) => {
+    let settled = false;
+    const finish = (res) => {
+      if (settled) return;
+      settled = true;
+      overlay.remove();
+      state.inputPromise = null;
+      resolve(res);
+    };
+    // 全屏遮罩（黑底，叠加在 canvas 之上）
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;'
+      + 'background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;'
+      + 'z-index:99999;font-family:sans-serif;';
+    // 居中卡片（黑底白字系统字体）
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#000;border:1px solid #666;border-radius:4px;'
+      + 'padding:28px 32px;max-width:540px;width:90%;color:#fff;text-align:center;';
+    const title = document.createElement('div');
+    title.textContent = '正版验证：请输入当日密钥';
+    title.style.cssText = 'font-size:17px;font-weight:bold;margin-bottom:10px;';
+    const hint = document.createElement('div');
+    hint.textContent = '每日密钥见 http://ychjl.anlinxi.top/auth/ ｜ 格式：YOUCHENG+YYYYMMDD+后缀';
+    hint.style.cssText = 'font-size:12px;color:#aaa;margin-bottom:16px;line-height:1.5;';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'YOUCHENG20261009TEST';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.autocapitalize = 'off';
+    input.style.cssText = 'width:100%;padding:10px 12px;font-size:16px;background:#111;color:#fff;'
+      + 'border:1px solid #555;border-radius:3px;text-align:center;outline:none;'
+      + 'font-family:monospace;box-sizing:border-box;';
+    const err = document.createElement('div');
+    err.textContent = '密钥无效或非当日密钥，请重新输入';
+    err.style.cssText = 'color:#f66;font-size:13px;min-height:20px;margin-top:10px;';
+    const btn = document.createElement('button');
+    btn.textContent = '确认';
+    btn.type = 'button';
+    btn.style.cssText = 'margin-top:6px;padding:9px 32px;font-size:15px;background:#333;color:#fff;'
+      + 'border:1px solid #666;border-radius:3px;cursor:pointer;font-family:sans-serif;';
+    const submit = () => {
+      const key = input.value.trim();
+      if (!KEY_PATTERN.test(key) || keyDate(key) !== todayStr()) {
+        // 本地格式不通过：提示重输并计入 D4 惩罚分级
+        countFailure(scene);
+        if (state.locked) { finish({ ok: false, penalty: 'locked' }); return; }
+        input.select();
+        input.focus();
+        return;
+      }
+      // 本地校验通过：落当日凭证、置 verified、清惩罚计数并放行
+      saveCred(key);
+      state.verified = true;
+      state.restricted = false;
+      state.failCount = 0;
+      state.graceTries = 0;
+      state.graceUntil = 0;
+      savePenalty();
+      finish({ ok: true, key });
+      // 辅助联网 verify（服务端确认；网络失败不影响本地校验结果）
+      fetchJson(verifyUrl(key)).catch(() => {});
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    });
+    btn.addEventListener('click', submit);
+    card.append(title, hint, input, err, btn);
+    overlay.append(card);
+    document.body.append(overlay);
+    input.focus();
+    input.select();
+  });
+  state.inputPromise = promise;
+  return promise;
+}
+
+/**
  * 主校验入口：一次性验证（游戏开始前 / 周期）。
  *
  * @param {string} reason 'boot' | 'enter' | 'periodic'
@@ -227,6 +333,14 @@ async function fetchTodayKey() {
  */
 export async function gateCheck(reason, ctx) {
   const scene = ctx || state.lastScene;
+  // 启动/进入：手动输入模式。每次启动必须手动输入当日密钥（即使已有凭证也不跳过），
+  // 校验通过才放行；若被绕过（未输入就进入）则在进入点补弹输入框。
+  if (reason === 'boot') return gateInput(scene);
+  if (reason === 'enter') {
+    if (state.verified) return { ok: true }; // 本次启动已手动输入通过
+    return gateInput(scene);
+  }
+  // 周期验证（periodic）：保持现状——用当日凭证联网 verify，失败离线容忍，不弹输入框
   // 跨日：凭证作废 + 惩罚归零，强制重取（2.2.4）
   const cred = loadCred();
   if (cred && cred.date !== todayStr()) { clearCred(); clearPenalty(); }
