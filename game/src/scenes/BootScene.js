@@ -14,6 +14,7 @@ import {
   LAYOUT_KEY, MAPNAMES_KEY, SPEAKERS_KEY, SCRIPT_SOURCES_KEY, TEMPLATE_KEY,
 } from '../systems/gameSave.js';
 import { initStore } from '../systems/saveStore.js';
+import { gateCheck } from '../systems/authGate.js';
 import { centerLegacyScene } from '../systems/stageView.js';
 
 /** 测试存档在 Phaser 缓存里的 key。见 `systems/savefile.js`。 */
@@ -284,6 +285,17 @@ export default class BootScene extends Phaser.Scene {
    * `startGame: true` 只剩验证脚本 `verify/browser.mjs` 的 `bootToField` 在用。
    */
   async startGame() {
+    // 防倒卖验证：游戏开始前的强拦截（D3，Boot 挂点）。
+    // 每日首验联网取钥；未联网且无当日凭证时进入宽限期放行（D11 B，存/读档
+    // 由 gateGuard 拦下）；密钥无效/已锁定则停在黑屏提示并 5 秒后自动重试，
+    // 不进入标题画面。
+    const auth = await gateCheck('boot', this).catch(() => ({ ok: false }));
+    if (!auth.ok) {
+      this.time?.delayedCall?.(5000, () => {
+        if (this.scene.isActive('Boot')) this.startGame();
+      });
+      return;
+    }
     // 选存储后端：能恢复上次选的文件夹就用它，否则浏览器存储。
     // 标题读档页必须等后端恢复，不能短暂把磁盘档误显示成空档。
     // ⚠️ 这里**不会弹文件夹选择框**（那需要用户手势），见 `saveStore.initStore`。

@@ -22,6 +22,7 @@ import {
 } from '../systems/saveslot.js';
 import { downloadTsf, pickTsf } from '../platform/browserFiles.js';
 import { useFolder, folderName, folderSupported } from '../systems/saveStore.js';
+import { gateGuard, startGateWatch } from '../systems/authGate.js';
 import {
   expGain, healParty, itemGain, itemLose, moneyGain, moneyLose,
   partyJoin, partyLeave, testEquip, testStat, learnStorySkill,
@@ -337,6 +338,9 @@ export default class FieldScene extends Phaser.Scene {
   }
 
   create() {
+    // 防倒卖验证：进入游戏后启动 10 分钟周期验证（D4）。双定时器哨兵 + 前台
+    // 切回补检在 authGate 内部实现，这里防重入（资源未到 restart 重进 create 时忽略）。
+    startGateWatch(this);
     this.fieldCameras = installFieldCameras(this); // 宽屏视野：世界相机铺满，界面相机居中 640（没开时什么也不做）
     this.enteringBattle = false;
     this.leaving = false;
@@ -820,6 +824,7 @@ export default class FieldScene extends Phaser.Scene {
       return Promise.resolve(false);
     }
     return Promise.resolve()
+      .then(() => gateGuard()) // 防倒卖验证：存档拦截（D6），未验证/受限/锁定时阻止写入
       .then(() => {
         const bytes = buildSaveBytes(this, {
           mapId: this.mapId,
