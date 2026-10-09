@@ -16,6 +16,7 @@ import {
 import { initStore } from '../systems/saveStore.js';
 import { gateCheck } from '../systems/authGate.js';
 import { centerLegacyScene } from '../systems/stageView.js';
+import { authGate } from '../systems/ycAuth.js';
 
 /** 测试存档在 Phaser 缓存里的 key。见 `systems/savefile.js`。 */
 export const SAVEFILE_KEY = 'savefile';
@@ -296,6 +297,8 @@ export default class BootScene extends Phaser.Scene {
     // 标题读档页必须等后端恢复，不能短暂把磁盘档误显示成空档。
     // ⚠️ 这里**不会弹文件夹选择框**（那需要用户手势），见 `saveStore.initStore`。
     await initStore().catch((err) => console.warn('存储后端初始化失败：', err?.message ?? err));
+    // 防倒卖验证闸门：未通过（联网取钥 + 输入比对）不放行进入任何后续画面。
+    await authGate();
     if (this.toGame) {
       const entry = this.savedEntry ?? newGameEntry(this);
       await ensureMapWithSource(this, entry.mapId);

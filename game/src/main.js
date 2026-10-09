@@ -17,6 +17,7 @@ import { onSafeAreaChange, safeViewport } from './systems/safeArea.js';
 import { installBackgroundAudio } from './systems/backgroundAudio.js';
 import { bgmStreamElements } from './systems/bgm.js';
 import { installDiagnostics } from './systems/diagnostics.js';
+import { installAuthGate } from './systems/ycAuth.js';
 
 /**
  * 画面只按**整数倍**放大。
@@ -50,6 +51,10 @@ updateStageView(initialView.width, initialView.height);
 
 // 宽屏：两侧留边与房间等地图自带的纯黑底一致
 if (WIDE_ENABLED) document.documentElement.style.background = document.body.style.background = '#000000';
+
+// 防倒卖验证闸门（第一道）：拉起游戏本体前必须先通过时轮密钥验证。
+// BootScene.startGame 还有第二道（内存凭证比对秒过），防构建产物被单点绕过。
+await installAuthGate();
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
