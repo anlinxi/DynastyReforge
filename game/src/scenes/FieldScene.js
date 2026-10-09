@@ -20,6 +20,7 @@ import {
 import {
   loadAllSlots, loadSlot, saveSlot,
 } from '../systems/saveslot.js';
+import { authGate } from '../systems/ycAuth.js';
 import { downloadTsf, pickTsf } from '../platform/browserFiles.js';
 import { useFolder, folderName, folderSupported } from '../systems/saveStore.js';
 import {
@@ -815,7 +816,8 @@ export default class FieldScene extends Phaser.Scene {
       this.statusScreen.render();
       return Promise.resolve(false);
     }
-    return Promise.resolve()
+    // 存读档闸门：联网取现网密钥与内存比对，未通过不放行
+    return authGate()
       .then(() => {
         const bytes = buildSaveBytes(this, {
           mapId: this.mapId,
@@ -852,7 +854,8 @@ export default class FieldScene extends Phaser.Scene {
 
   /** 从某个槽读档：换掉全局状态，然后切到存档记的那张图与那个落点。 */
   loadFromSlot(slot) {
-    return loadSlot(slot).then((bytes) => {
+    // 存读档闸门：联网取现网密钥与内存比对，未通过不放行
+    return authGate().then(() => loadSlot(slot)).then((bytes) => {
       if (!bytes) throw new Error(`第 ${slot + 1} 格是空的`);
       this.enterSave(bytes);
     }).catch((err) => {
