@@ -17,7 +17,7 @@ mobile/ios/App/Payload/
 *.ipa
 # 瀹夊崜绛惧悕璇佷功锛堜笉杩涗粨搴擄級
 *.jks
-
-# 部署脚本与打包产物（含明文凭据，不提交）
+temp/
+# 閮ㄧ讲鑴氭湰涓庢墦鍖呬骇鐗╋紙鍚槑鏂囧嚟鎹紝涓嶆彁浜わ級
 deploy_ychjl.py
 game/dist_zip/
